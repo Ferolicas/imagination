@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PLANS, QUALITIES } from "@/lib/plans";
+import AuthCta from "@/components/auth-cta";
 
 function Icon({ d, className = "h-6 w-6" }: { d: string; className?: string }) {
   return (
@@ -74,13 +75,7 @@ export default function Home() {
               la imagen. Empieza gratis, sin tarjeta.
             </p>
             <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link
-                href="/crear"
-                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-rose-500 to-fuchsia-600 px-7 py-4 font-display text-lg font-semibold text-white shadow-xl shadow-rose-900/40 transition-[filter] hover:brightness-110 sm:w-auto"
-              >
-                <Icon d="m12 3 1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3z" className="h-5 w-5" />
-                Crear mi primera imagen
-              </Link>
+              <AuthCta label="Crear mi primera imagen" className="w-full sm:w-auto" />
               <Link
                 href="/precios"
                 className="w-full cursor-pointer rounded-2xl border border-white/15 px-7 py-4 text-center font-medium text-white/80 transition-colors hover:border-white/30 hover:text-white sm:w-auto"

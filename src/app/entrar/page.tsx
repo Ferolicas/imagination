@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import GoogleButton from "@/components/google-button";
 
 export default function Entrar() {
   const [email, setEmail] = useState("");
@@ -39,6 +40,13 @@ export default function Entrar() {
       </Link>
       <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)]/70 p-6 shadow-2xl shadow-black/40">
         <h1 className="font-display text-2xl font-bold">Entrar</h1>
+
+        <div className="mt-5">
+          <GoogleButton />
+        </div>
+        <div className="my-4 flex items-center gap-3 text-xs text-white/30">
+          <span className="h-px flex-1 bg-white/10" /> o <span className="h-px flex-1 bg-white/10" />
+        </div>
         <form onSubmit={submit} className="mt-5 space-y-3">
           <input
             type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@correo.com"

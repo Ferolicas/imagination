@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import GoogleButton from "@/components/google-button";
 
 export default function Registro() {
   const [email, setEmail] = useState("");
@@ -49,6 +50,13 @@ export default function Registro() {
       <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)]/70 p-6 shadow-2xl shadow-black/40">
         <h1 className="font-display text-2xl font-bold">Crea tu cuenta gratis</h1>
         <p className="mt-1 text-sm text-white/55">30 créditos de bienvenida al confirmar tu correo.</p>
+
+        <div className="mt-5">
+          <GoogleButton />
+        </div>
+        <div className="my-4 flex items-center gap-3 text-xs text-white/30">
+          <span className="h-px flex-1 bg-white/10" /> o <span className="h-px flex-1 bg-white/10" />
+        </div>
 
         {info ? (
           <p className="mt-5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{info}</p>
