@@ -22,6 +22,7 @@ const schema = z.object({
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().default("Imagination <no-reply@olcas.app>"),
   AUTH_SECRET: z.string().optional(),
+  ADMIN_EMAILS: z.string().optional(), // correos admin separados por comas
 
   // Anti-abuso / kill switch
   KILL_SWITCH: z.enum(["on", "off"]).default("off"),

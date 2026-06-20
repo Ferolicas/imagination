@@ -34,3 +34,24 @@ export interface PromptEnhancer {
   available(): boolean;
   enhance(prompt: string, tier: EnhanceTier): Promise<string>;
 }
+
+// ── Vídeo (preparado para Fase 5: Kling / Seedance / Veo) ──
+export interface VideoGenRequest {
+  prompt: string;
+  initImage?: string; // data URL o URL para image-to-video
+  durationSec: number;
+  width: number;
+  height: number;
+}
+
+export interface VideoGenResult {
+  videos: string[];
+  engine: string;
+  model?: string;
+}
+
+export interface VideoEngine {
+  id: string;
+  available(): boolean;
+  generate(req: VideoGenRequest): Promise<VideoGenResult>;
+}

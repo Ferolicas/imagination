@@ -149,7 +149,13 @@ export default function Home() {
       </main>
 
       <footer className="border-t border-white/5 px-4 py-8 text-center text-sm text-white/40">
-        © {new Date().getFullYear()} Imagination · Generación de imágenes con IA
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+          <Link href="/precios" className="hover:text-white/70">Planes</Link>
+          <Link href="/legal/terminos" className="hover:text-white/70">Términos</Link>
+          <Link href="/legal/privacidad" className="hover:text-white/70">Privacidad</Link>
+          <Link href="/legal/cookies" className="hover:text-white/70">Cookies</Link>
+        </div>
+        <div className="mt-3">© {new Date().getFullYear()} Imagination · Generación de imágenes con IA</div>
       </footer>
     </>
   );
