@@ -9,9 +9,9 @@ type SizeKey = "square" | "portrait" | "landscape";
 type Shot = { url: string; prompt: string };
 
 const SIZES: { key: SizeKey; label: string }[] = [
-  { key: "square", label: "Cuadrada" },
-  { key: "portrait", label: "Retrato" },
-  { key: "landscape", label: "Paisaje" },
+  { key: "square", label: "1:1" },
+  { key: "portrait", label: "3:4" },
+  { key: "landscape", label: "4:3" },
 ];
 
 const PRO_TIERS = [
@@ -53,8 +53,7 @@ export default function CrearPage() {
     fetch("/api/history")
       .then((r) => r.json())
       .then((d: { items?: { images: string[]; promptOriginal: string }[] }) => {
-        const list = (d.items || []).flatMap((it) => it.images.map((url) => ({ url, prompt: it.promptOriginal })));
-        setShots(list);
+        setShots((d.items || []).flatMap((it) => it.images.map((url) => ({ url, prompt: it.promptOriginal }))));
       })
       .catch(() => {});
   }, []);
@@ -78,10 +77,7 @@ export default function CrearPage() {
       });
       const data = await r.json();
       if (!r.ok) {
-        if (data.needAuth) {
-          router.push("/registro");
-          return;
-        }
+        if (data.needAuth) return router.push("/registro");
         setError(data.error || "Error al generar.");
         return;
       }
@@ -99,13 +95,7 @@ export default function CrearPage() {
   }
 
   const navLb = useCallback(
-    (dir: number) => {
-      setLb((i) => {
-        if (i === null) return i;
-        const n = i + dir;
-        return n < 0 || n >= shots.length ? i : n;
-      });
-    },
+    (dir: number) => setLb((i) => (i === null ? i : i + dir < 0 || i + dir >= shots.length ? i : i + dir)),
     [shots.length],
   );
 
@@ -128,108 +118,71 @@ export default function CrearPage() {
   const recent = shots.slice(0, 5);
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-6 sm:py-10">
+    <div className="mx-auto w-full max-w-2xl px-4 py-6 sm:py-8">
       {/* Header */}
-      <header className="mb-6 flex items-center justify-between">
+      <header className="mb-8 flex items-center justify-between">
         <Link href="/" className="font-display text-xl font-bold tracking-tight">
           <span className="bg-gradient-to-br from-rose-400 to-fuchsia-500 bg-clip-text text-transparent">Imagination</span>
         </Link>
         <div className="flex items-center gap-2">
-          <Link href="/galeria" className="rounded-full border border-white/15 px-3 py-1.5 text-sm text-white/80 transition-colors hover:border-rose-400/60 hover:text-white">
-            Galería
-          </Link>
+          <Link href="/galeria" className="rounded-full border border-white/15 px-3 py-1.5 text-sm text-white/80 transition-colors hover:border-rose-400/60 hover:text-white">Galería</Link>
           {me ? (
-            <Link href="/cuenta" className="rounded-full border border-rose-400/40 bg-rose-500/10 px-3 py-1.5 text-sm font-semibold text-rose-200 transition-colors hover:border-rose-400">
-              {me.credits} créditos
-            </Link>
+            <Link href="/cuenta" className="rounded-full border border-rose-400/40 bg-rose-500/10 px-3 py-1.5 text-sm font-semibold text-rose-200 transition-colors hover:border-rose-400">{me.credits} créditos</Link>
           ) : (
-            <Link href="/registro" className="rounded-full bg-gradient-to-br from-rose-500 to-fuchsia-600 px-4 py-1.5 text-sm font-semibold text-white">
-              Crear cuenta
-            </Link>
+            <Link href="/registro" className="rounded-full bg-gradient-to-br from-rose-500 to-fuchsia-600 px-4 py-1.5 text-sm font-semibold text-white">Crear cuenta</Link>
           )}
         </div>
       </header>
 
-      {/* Input */}
-      <div className="rounded-[28px] border border-[var(--border)] bg-gradient-to-b from-[var(--card-2)] to-[var(--card)] p-5 shadow-2xl shadow-black/50">
-        <div className="rounded-3xl border border-white/10 bg-[var(--background)]/60 p-1 focus-within:border-rose-400/70 transition-colors">
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Describe lo que imaginas… un retrato, un paisaje, un producto. La IA lo perfecciona por ti."
-            className="min-h-28 w-full resize-none rounded-3xl bg-transparent p-4 text-lg outline-none placeholder:text-white/30"
-          />
-        </div>
+      <h1 className="mb-5 text-center font-display text-2xl font-bold tracking-tight sm:text-3xl">¿Qué quieres imaginar hoy?</h1>
 
-        {/* Estilos */}
-        <div className="mt-4 flex flex-wrap gap-2">
-          {STYLES.map((s) => {
-            const on = styles.includes(s.key);
-            return (
-              <button
-                key={s.key}
-                type="button"
-                onClick={() => toggleStyle(s.key)}
-                className={`cursor-pointer rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                  on ? "border-rose-400 bg-rose-500/20 text-white" : "border-[var(--border)] bg-[var(--background)]/40 text-white/65 hover:border-white/30"
-                }`}
-              >
-                {s.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Formato */}
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          {SIZES.map((s) => (
-            <button
-              key={s.key}
-              type="button"
-              onClick={() => setSize(s.key)}
-              className={`cursor-pointer rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors ${
-                size === s.key ? "border-rose-400 bg-rose-500/15 text-white" : "border-[var(--border)] bg-[var(--background)]/40 text-white/70 hover:border-white/30"
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Calidad */}
-        <div className="mt-4">
-          <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/45">Calidad</span>
-          <div className="flex flex-wrap gap-2">
-            <span className="rounded-xl border border-rose-400 bg-rose-500/15 px-3.5 py-2 text-sm font-medium text-white">Normal</span>
-            {PRO_TIERS.map((t) => (
-              <button
-                key={t.key}
-                type="button"
-                onClick={() => router.push("/precios")}
-                className="group flex cursor-pointer items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--background)]/40 px-3.5 py-2 text-sm font-medium text-white/70 transition-colors hover:border-amber-300/60"
-              >
-                {t.label}
-                <span className="pro-shine rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">Pro</span>
-              </button>
+      {/* Barra de prompt estilo Imagine */}
+      <div className="relative rounded-[30px] border border-white/12 bg-[var(--card)]/80 shadow-2xl shadow-black/50 transition-colors focus-within:border-rose-400/60">
+        <textarea
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) generate(); }}
+          placeholder="Describe lo que imaginas… la IA lo perfecciona por ti."
+          className="min-h-[120px] w-full resize-none rounded-[30px] bg-transparent px-5 pt-5 pb-16 text-lg outline-none placeholder:text-white/30"
+        />
+        <div className="absolute inset-x-3 bottom-3 flex items-center justify-between gap-2">
+          <div className="flex gap-1.5">
+            {SIZES.map((s) => (
+              <button key={s.key} type="button" onClick={() => setSize(s.key)} className={`cursor-pointer rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${size === s.key ? "border-rose-400 bg-rose-500/20 text-white" : "border-white/10 text-white/55 hover:text-white"}`}>{s.label}</button>
             ))}
           </div>
+          <button type="button" onClick={generate} disabled={loading} aria-label="Generar" className="flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-fuchsia-600 text-white shadow-lg shadow-rose-900/40 transition-[filter] hover:brightness-110 disabled:opacity-60">
+            {loading ? <Spinner /> : <Ic d={SPARK} />}
+          </button>
         </div>
-
-        <button
-          type="button"
-          onClick={generate}
-          disabled={loading}
-          className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-rose-500 to-fuchsia-600 px-5 py-4 font-display text-lg font-semibold text-white shadow-lg shadow-rose-900/40 transition-[filter] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {loading ? <Spinner /> : <Ic d={SPARK} />}
-          {loading ? "Creando tu imagen…" : "Generar imagen"}
-        </button>
-        {error && <p className="mt-3 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{error}</p>}
       </div>
+
+      {/* Estilos */}
+      <div className="mt-4 flex flex-wrap justify-center gap-2">
+        {STYLES.map((s) => {
+          const on = styles.includes(s.key);
+          return (
+            <button key={s.key} type="button" onClick={() => toggleStyle(s.key)} className={`cursor-pointer rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${on ? "border-rose-400 bg-rose-500/20 text-white" : "border-[var(--border)] bg-[var(--card)]/40 text-white/65 hover:border-white/30"}`}>{s.label}</button>
+          );
+        })}
+      </div>
+
+      {/* Calidad */}
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+        <span className="rounded-full border border-rose-400 bg-rose-500/15 px-3.5 py-1.5 text-sm font-medium text-white">Normal</span>
+        {PRO_TIERS.map((t) => (
+          <button key={t.key} type="button" onClick={() => router.push("/precios")} className="flex cursor-pointer items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--card)]/40 px-3.5 py-1.5 text-sm font-medium text-white/70 transition-colors hover:border-amber-300/60">
+            {t.label}
+            <span className="pro-shine rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">Pro</span>
+          </button>
+        ))}
+      </div>
+
+      {error && <p className="mx-auto mt-4 max-w-md rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-center text-sm text-rose-200">{error}</p>}
 
       {/* Mosaico últimas 5 */}
       {recent.length > 0 && (
-        <div className="mt-6">
+        <div className="mt-8">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-sm font-semibold text-white/70">Tus últimas creaciones</span>
             <Link href="/galeria" className="text-sm text-rose-400 hover:underline">Ver galería →</Link>
