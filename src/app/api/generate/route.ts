@@ -3,6 +3,7 @@ import { z } from "zod";
 import { env } from "@/lib/env";
 import { enhancePrompt, getImageEngine } from "@/lib/engines";
 import { PLANS, resolveGen } from "@/lib/plans";
+import { hintsForStyles } from "@/lib/styles";
 import { killSwitchOn, rateLimit, bumpDailyCounter, openAiSpendTodayOk, addOpenAiSpend } from "@/lib/ratelimit";
 import { getCurrentUser } from "@/lib/auth/session";
 import { debitCredits, refundCredits } from "@/lib/credits";
@@ -16,7 +17,7 @@ const Body = z.object({
   prompt: z.string().min(2).max(1000),
   size: z.enum(["square", "portrait", "landscape"]).default("square"),
   quality: z.enum(["draft", "standard", "high", "ultra"]).default("standard"),
-  enhance: z.boolean().default(true),
+  styles: z.array(z.string()).max(8).default([]),
 });
 
 const SIZES = {
@@ -33,36 +34,29 @@ function getIp(req: NextRequest): string {
 export async function POST(req: NextRequest) {
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Datos inválidos." }, { status: 400 });
-  const { prompt, size, enhance } = parsed.data;
+  const { prompt, size, styles } = parsed.data;
   let quality: Quality = parsed.data.quality;
   const dims = SIZES[size];
+  const hints = hintsForStyles(styles);
 
   if (await killSwitchOn()) {
-    return NextResponse.json(
-      { error: "La generación está pausada temporalmente. Vuelve en un rato." },
-      { status: 503 },
-    );
+    return NextResponse.json({ error: "La generación está pausada temporalmente. Vuelve en un rato." }, { status: 503 });
   }
 
   const ip = getIp(req);
   const user = await getCurrentUser();
 
-  // ── Anónimo: prueba gratis limitada por IP (motor gratis, sin créditos) ──
+  // ── Anónimo: prueba gratis por IP (motor gratis, sin créditos) ──
   if (!user) {
     if (quality !== "draft" && quality !== "standard") quality = "standard";
     const rl = await rateLimit(`gen:ip:${ip}`, env.FREE_ANON_DAILY_CAP, 24 * 3600);
     if (!rl.ok) {
-      return NextResponse.json(
-        { error: "Has agotado tus pruebas gratis. Crea una cuenta gratuita para seguir.", needAuth: true, remaining: 0 },
-        { status: 429 },
-      );
+      return NextResponse.json({ error: "Has agotado tus pruebas gratis. Crea una cuenta gratuita para seguir.", needAuth: true, remaining: 0 }, { status: 429 });
     }
     const { pollinationsModel } = resolveGen("FREE", quality);
-    const finalPrompt = enhance ? await enhancePrompt(prompt, "free") : prompt.trim();
+    const finalPrompt = await enhancePrompt(prompt, "free", hints);
     try {
-      const result = await getImageEngine("free").generate({
-        prompt: finalPrompt, width: dims.width, height: dims.height, count: 1, quality, model: pollinationsModel,
-      });
+      const result = await getImageEngine("free").generate({ prompt: finalPrompt, width: dims.width, height: dims.height, count: 1, quality, model: pollinationsModel });
       await bumpDailyCounter("pollinations");
       return NextResponse.json({ images: result.images, finalPrompt, remaining: rl.remaining, anon: true });
     } catch {
@@ -80,15 +74,10 @@ export async function POST(req: NextRequest) {
   if (!planCfg.qualities.includes(quality)) quality = planCfg.defaultQuality;
   const resolved = resolveGen(plan, quality);
 
-  // Kill switch de presupuesto OpenAI: si el gasto del día supera el tope, pausa el premium.
   if (resolved.engine === "openai" && !(await openAiSpendTodayOk(env.DAILY_OPENAI_BUDGET_EUR))) {
-    return NextResponse.json(
-      { error: "El servicio premium está pausado por hoy (límite de presupuesto alcanzado)." },
-      { status: 503 },
-    );
+    return NextResponse.json({ error: "El servicio premium está pausado por hoy (límite de presupuesto alcanzado)." }, { status: 503 });
   }
 
-  // Tope diario de ráfaga (protección Pollinations) — solo plan FREE.
   if (plan === "FREE") {
     const cap = await rateLimit(`gen:u:${user.id}`, env.FREE_DAILY_CAP, 24 * 3600);
     if (!cap.ok) {
@@ -96,33 +85,21 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Débito ATÓMICO antes de generar (nunca genera sin saldo).
   const debit = await debitCredits(user.id, resolved.credits, `gen:${quality}`);
   if (!debit.ok) {
     return NextResponse.json({ error: "No te quedan créditos suficientes.", needCredits: true, balance: debit.balance }, { status: 402 });
   }
 
-  const finalPrompt = enhance ? await enhancePrompt(prompt, planCfg.enhancer) : prompt.trim();
+  const finalPrompt = await enhancePrompt(prompt, planCfg.enhancer, hints);
   try {
-    const result = await getImageEngine(resolved.engine).generate({
-      prompt: finalPrompt, width: dims.width, height: dims.height, count: 1, quality, model: resolved.pollinationsModel,
-    });
+    const result = await getImageEngine(resolved.engine).generate({ prompt: finalPrompt, width: dims.width, height: dims.height, count: 1, quality, model: resolved.pollinationsModel });
     if (resolved.engine === "free") await bumpDailyCounter("pollinations");
     else if (resolved.engine === "openai" && resolved.openaiQuality) await addOpenAiSpend(resolved.openaiQuality);
-    // Persistencia best-effort (historial/galería).
     prisma.generation
-      .create({
-        data: {
-          userId: user.id, promptOriginal: prompt, promptFinal: finalPrompt,
-          engine: result.engine, model: result.model, plan, quality,
-          width: dims.width, height: dims.height, count: 1,
-          creditCost: resolved.credits, status: "DONE", images: result.images, ip,
-        },
-      })
+      .create({ data: { userId: user.id, promptOriginal: prompt, promptFinal: finalPrompt, engine: result.engine, model: result.model, plan, quality, width: dims.width, height: dims.height, count: 1, creditCost: resolved.credits, status: "DONE", images: result.images, ip } })
       .catch(() => {});
     return NextResponse.json({ images: result.images, finalPrompt, cost: resolved.credits, credits: debit.balance });
   } catch {
-    // Nunca cobrar un fallo: reembolso compensatorio.
     await refundCredits(user.id, resolved.credits, "refund: fallo de generación");
     return NextResponse.json({ error: "No se pudo generar (créditos reembolsados). Inténtalo de nuevo." }, { status: 502 });
   }
