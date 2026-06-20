@@ -3,7 +3,7 @@ import { z } from "zod";
 import { env } from "@/lib/env";
 import { enhancePrompt, getImageEngine } from "@/lib/engines";
 import { PLANS, resolveGen } from "@/lib/plans";
-import { killSwitchOn, rateLimit, bumpDailyCounter } from "@/lib/ratelimit";
+import { killSwitchOn, rateLimit, bumpDailyCounter, openAiSpendTodayOk, addOpenAiSpend } from "@/lib/ratelimit";
 import { getCurrentUser } from "@/lib/auth/session";
 import { debitCredits, refundCredits } from "@/lib/credits";
 import { prisma } from "@/lib/db";
@@ -80,6 +80,14 @@ export async function POST(req: NextRequest) {
   if (!planCfg.qualities.includes(quality)) quality = planCfg.defaultQuality;
   const resolved = resolveGen(plan, quality);
 
+  // Kill switch de presupuesto OpenAI: si el gasto del día supera el tope, pausa el premium.
+  if (resolved.engine === "openai" && !(await openAiSpendTodayOk(env.DAILY_OPENAI_BUDGET_EUR))) {
+    return NextResponse.json(
+      { error: "El servicio premium está pausado por hoy (límite de presupuesto alcanzado)." },
+      { status: 503 },
+    );
+  }
+
   // Tope diario de ráfaga (protección Pollinations) — solo plan FREE.
   if (plan === "FREE") {
     const cap = await rateLimit(`gen:u:${user.id}`, env.FREE_DAILY_CAP, 24 * 3600);
@@ -100,6 +108,7 @@ export async function POST(req: NextRequest) {
       prompt: finalPrompt, width: dims.width, height: dims.height, count: 1, quality, model: resolved.pollinationsModel,
     });
     if (resolved.engine === "free") await bumpDailyCounter("pollinations");
+    else if (resolved.engine === "openai" && resolved.openaiQuality) await addOpenAiSpend(resolved.openaiQuality);
     // Persistencia best-effort (historial/galería).
     prisma.generation
       .create({

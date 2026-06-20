@@ -42,3 +42,30 @@ export async function bumpDailyCounter(name: string): Promise<number> {
     return 0;
   }
 }
+
+// ── Presupuesto OpenAI por día (anti-sustos) ──
+// Coste aproximado por imagen gpt-image-1 según calidad (EUR).
+const OPENAI_COST: Record<string, number> = { low: 0.011, medium: 0.04, high: 0.16 };
+
+export async function openAiSpendTodayOk(budgetEur: number): Promise<boolean> {
+  if (!redis) return true;
+  try {
+    const day = new Date().toISOString().slice(0, 10);
+    const cur = Number(await redis.get(`spend:openai:${day}`)) || 0;
+    return cur < budgetEur;
+  } catch {
+    return true;
+  }
+}
+
+export async function addOpenAiSpend(quality: "low" | "medium" | "high"): Promise<void> {
+  if (!redis) return;
+  try {
+    const day = new Date().toISOString().slice(0, 10);
+    const k = `spend:openai:${day}`;
+    await redis.incrbyfloat(k, OPENAI_COST[quality] ?? 0.04);
+    await redis.expire(k, 36 * 3600);
+  } catch {
+    /* noop */
+  }
+}
