@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 const Body = z.object({
   prompt: z.string().min(2).max(1000),
   size: z.enum(["square", "portrait", "landscape"]).default("square"),
-  quality: z.enum(["draft", "standard", "high", "ultra"]).default("standard"),
+  quality: z.enum(["basica", "alta", "premium"]).default("basica"),
   styles: z.array(z.string()).max(8).default([]),
 });
 
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
 
   // ── Anónimo: prueba gratis por IP (motor gratis, sin créditos) ──
   if (!user) {
-    if (quality !== "draft" && quality !== "standard") quality = "standard";
+    quality = "basica";
     const rl = await rateLimit(`gen:ip:${ip}`, env.FREE_ANON_DAILY_CAP, 24 * 3600);
     if (!rl.ok) {
       return NextResponse.json({ error: "Has agotado tus pruebas gratis. Crea una cuenta gratuita para seguir.", needAuth: true, remaining: 0 }, { status: 429 });

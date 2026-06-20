@@ -73,7 +73,7 @@ export default function CrearPage() {
       const r = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, size, quality: "standard", styles }),
+        body: JSON.stringify({ prompt, size, quality: "basica", styles }),
       });
       const data = await r.json();
       if (!r.ok) {

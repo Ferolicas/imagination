@@ -1,6 +1,6 @@
 // Capa de motores: adaptadores intercambiables. Cambiar de proveedor = config, no reescritura.
 
-export type Quality = "draft" | "standard" | "high" | "ultra";
+export type Quality = "basica" | "alta" | "premium";
 export type EngineKind = "free" | "openai";
 
 export interface ImageGenRequest {

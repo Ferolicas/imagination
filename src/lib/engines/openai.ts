@@ -14,7 +14,7 @@ export const openaiImageEngine: ImageEngine = {
   id: "openai",
   available: () => Boolean(process.env.OPENAI_API_KEY),
   async generate(req: ImageGenRequest): Promise<ImageGenResult> {
-    const quality = req.quality === "ultra" ? "high" : req.quality === "high" ? "medium" : "low";
+    const quality = req.quality === "premium" ? "high" : req.quality === "alta" ? "medium" : "low";
     const { images } = await generateImage({
       model: openai.image("gpt-image-1"),
       prompt: req.prompt,
