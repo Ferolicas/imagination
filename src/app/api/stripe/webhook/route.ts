@@ -102,7 +102,24 @@ export async function POST(req: NextRequest) {
       }
       case "checkout.session.completed": {
         const cs = event.data.object as Stripe.Checkout.Session;
-        if (cs.metadata?.kind === "topup" && cs.metadata.priceId) {
+        if (cs.mode === "subscription") {
+          // Pago primero: crear/enlazar la cuenta por el email del pago.
+          const email = (cs.customer_details?.email || cs.customer_email || "").toLowerCase();
+          const customerId = typeof cs.customer === "string" ? cs.customer : null;
+          const planMeta = cs.metadata?.plan as Plan | undefined;
+          if (email && customerId && planMeta) {
+            let u = await prisma.user.findUnique({ where: { email } });
+            if (!u) {
+              u = await prisma.user.create({ data: { email, emailVerified: new Date(), stripeCustomerId: customerId } });
+            } else if (!u.stripeCustomerId) {
+              u = await prisma.user.update({ where: { id: u.id }, data: { stripeCustomerId: customerId, emailVerified: u.emailVerified ?? new Date() } });
+            }
+            await prisma.user.update({ where: { id: u.id }, data: { plan: planMeta, creditsMonthly: PLANS[planMeta].monthlyCredits } });
+            await prisma.creditTx
+              .create({ data: { userId: u.id, amount: PLANS[planMeta].monthlyCredits, type: "MONTHLY_GRANT", bucket: "MONTHLY", reason: `Alta plan ${planMeta}` } })
+              .catch(() => {});
+          }
+        } else if (cs.metadata?.kind === "topup" && cs.metadata.priceId) {
           const credits = TOPUP_CREDITS[cs.metadata.priceId];
           const user = await prisma.user.findFirst({ where: { stripeCustomerId: cs.customer as string } });
           if (user && credits) {
