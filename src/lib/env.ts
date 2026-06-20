@@ -8,8 +8,6 @@ const schema = z.object({
 
   // Motores de imagen
   POLLINATIONS_BASE: z.string().url().default("https://image.pollinations.ai"),
-  SWARM_LOCAL_URL: z.string().url().optional(),
-  SWARM_QUEUE_URL: z.string().url().optional(),
   OPENAI_API_KEY: z.string().optional(),
 
   // Prompt enhancer
@@ -29,6 +27,7 @@ const schema = z.object({
   KILL_SWITCH: z.enum(["on", "off"]).default("off"),
   FREE_WELCOME_CREDITS: z.coerce.number().int().default(30),
   FREE_DAILY_CAP: z.coerce.number().int().default(10),
+  FREE_ANON_DAILY_CAP: z.coerce.number().int().default(3),
   MAX_FREE_ACCOUNTS_PER_IP: z.coerce.number().int().default(2),
   DAILY_POLLINATIONS_CAP: z.coerce.number().int().default(2000),
   DAILY_OPENAI_BUDGET_EUR: z.coerce.number().default(20),

@@ -1,10 +1,9 @@
 import type { EngineKind, ImageEngine } from "./types";
 import { pollinationsEngine } from "./pollinations";
 
-// Registro de motores. Añadir SwarmLocal/OpenAI/Vídeo = registrar aquí, sin tocar el flujo.
+// Registro de motores (100% API, sin PC). Añadir OpenAI/Vídeo = registrar aquí, sin tocar el flujo.
 const registry: Partial<Record<string, ImageEngine>> = {
   pollinations: pollinationsEngine,
-  // swarm:  swarmLocalEngine,   (Fase 1 — balanceo/backup por Tailscale)
   // openai: openaiImageEngine,  (Fase 2)
 };
 
@@ -13,7 +12,7 @@ export function getImageEngine(kind: EngineKind): ImageEngine {
   if (kind === "openai") {
     return registry.openai ?? pollinationsEngine; // fallback hasta Fase 2
   }
-  // free: por ahora Pollinations; el balanceo con SwarmLocal se añade en anti-abuso.
+  // free: Pollinations (100% API).
   return registry.pollinations!;
 }
 

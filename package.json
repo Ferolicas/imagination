@@ -24,6 +24,7 @@
     "bcryptjs": "^3.0.3",
     "disposable-email-domains": "^1.0.62",
     "ioredis": "^5.11.1",
+    "jose": "^6.2.3",
     "nanoid": "^5.1.14",
     "next": "16.2.9",
     "react": "19.2.4",
