@@ -68,6 +68,28 @@ export default function CrearPage() {
     setStyles((s) => (s.includes(k) ? s.filter((x) => x !== k) : [...s, k]));
   }
 
+  async function pollVideoStatus(id: string) {
+    for (let i = 0; i < 80; i++) {
+      await new Promise((res) => setTimeout(res, 5000));
+      try {
+        const r = await fetch(`/api/video/status?id=${id}`);
+        const d = await r.json();
+        if (d.status === "done" && d.url) {
+          setShots((prev) => [{ url: d.url, prompt }, ...prev]);
+          setLb(0);
+          return;
+        }
+        if (d.status === "error") {
+          setError(d.error || "El vídeo falló.");
+          return;
+        }
+      } catch {
+        /* reintentar */
+      }
+    }
+    setError("El vídeo tarda más de lo normal; aparecerá en tu galería al terminar.");
+  }
+
   async function generate() {
     if (prompt.trim().length < 2) {
       setError("Escribe una idea primero.");
@@ -93,12 +115,16 @@ export default function CrearPage() {
         setError(data.error || "Error al generar.");
         return;
       }
-      const url = (data.images?.[0] || data.videos?.[0]) as string | undefined;
+      if (typeof data.credits === "number") setMe((m) => (m ? { ...m, credits: data.credits } : m));
+      if (mode === "video") {
+        if (data.generationId) await pollVideoStatus(data.generationId);
+        return;
+      }
+      const url = data.images?.[0] as string | undefined;
       if (url) {
         setShots((prev) => [{ url, prompt: data.finalPrompt || prompt }, ...prev]);
         setLb(0);
       }
-      if (typeof data.credits === "number") setMe((m) => (m ? { ...m, credits: data.credits } : m));
     } catch {
       setError("Error de red. Inténtalo de nuevo.");
     } finally {

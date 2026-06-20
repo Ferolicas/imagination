@@ -135,6 +135,7 @@ model Generation {
   creditCost     Int       @default(0)
   status         GenStatus @default(QUEUED)
   error          String?
+  jobId          String?
   images         String[]
   promptHash     String?
   ip             String?
