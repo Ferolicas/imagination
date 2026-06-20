@@ -1,20 +1,21 @@
 import type { EngineKind, ImageEngine } from "./types";
 import { pollinationsEngine } from "./pollinations";
+import { openaiImageEngine } from "./openai";
 
-// Registro de motores (100% API, sin PC). Añadir OpenAI/Vídeo = registrar aquí, sin tocar el flujo.
-const registry: Partial<Record<string, ImageEngine>> = {
+// Registro de motores (100% API, sin PC). Añadir vídeo = registrar aquí, sin tocar el flujo.
+const registry: Record<string, ImageEngine> = {
   pollinations: pollinationsEngine,
-  // openai: openaiImageEngine,  (Fase 2)
+  openai: openaiImageEngine,
 };
 
 // Selecciona el motor de imagen según el tipo resuelto del plan.
 export function getImageEngine(kind: EngineKind): ImageEngine {
   if (kind === "openai") {
-    return registry.openai ?? pollinationsEngine; // fallback hasta Fase 2
+    return openaiImageEngine.available() ? openaiImageEngine : pollinationsEngine;
   }
-  // free: Pollinations (100% API).
-  return registry.pollinations!;
+  return pollinationsEngine;
 }
 
+export { registry };
 export { enhancePrompt } from "./enhancer";
 export type { ImageEngine, ImageGenRequest, ImageGenResult, Quality } from "./types";

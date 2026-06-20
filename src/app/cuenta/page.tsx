@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth/session";
 import { PLANS } from "@/lib/plans";
 import LogoutButton from "./logout-button";
+import Billing from "./billing";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +56,8 @@ export default async function Cuenta() {
           Mi galería
         </Link>
       </div>
+
+      <Billing hasSub={user.plan !== "FREE"} />
     </div>
   );
 }

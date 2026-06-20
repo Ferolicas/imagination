@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { PLANS, QUALITIES } from "@/lib/plans";
+import CheckoutButton from "./checkout-button";
 
 export const metadata: Metadata = {
   title: "Planes y precios",
@@ -60,20 +61,14 @@ export default function PreciosPage() {
                 Empezar gratis
               </Link>
             ) : (
-              <button
-                type="button"
-                disabled
-                className="mt-6 cursor-not-allowed rounded-xl bg-white/5 px-4 py-3 text-center text-sm font-semibold text-white/40"
-              >
-                Disponible pronto
-              </button>
+              <CheckoutButton plan={p.id as "BASIC" | "PRO" | "PREMIUM"} primary={p.id === "PRO"} />
             )}
           </div>
         ))}
       </div>
 
       <p className="mt-8 text-center text-xs text-white/35">
-        Los pagos se activarán muy pronto. Mientras tanto, disfruta del plan gratuito.
+        Suscripción mensual, cancelable cuando quieras. Pago seguro con Stripe.
       </p>
     </div>
   );

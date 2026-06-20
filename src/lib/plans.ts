@@ -97,3 +97,16 @@ export function resolveGen(plan: Plan, quality: Quality): ResolvedGen {
   const openaiQuality = q === "standard" ? "low" : q === "high" ? "medium" : "high";
   return { engine: "openai", credits, openaiQuality };
 }
+
+export interface TopupPack {
+  key: "S" | "M" | "L";
+  credits: number;
+  priceEur: number;
+}
+
+// Packs de créditos adicionales (persistentes, no caducan con el ciclo).
+export const TOPUPS: TopupPack[] = [
+  { key: "S", credits: 250, priceEur: 5 },
+  { key: "M", credits: 900, priceEur: 15 },
+  { key: "L", credits: 2800, priceEur: 40 },
+];
