@@ -13,6 +13,7 @@ git fetch origin main
 git reset --hard origin/main
 
 pnpm install --frozen-lockfile || pnpm install
+pnpm exec prisma generate
 pnpm db:push
 pnpm build
 
