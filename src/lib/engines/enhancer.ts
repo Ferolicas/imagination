@@ -2,17 +2,16 @@ import { generateText } from "ai";
 import { groq } from "@ai-sdk/groq";
 import type { EnhanceTier, PromptEnhancer } from "./types";
 
-const SYSTEM = `Eres un experto en prompts para generación de imágenes con IA.
-Reescribe la idea del usuario como un prompt EN INGLÉS, rico y descriptivo:
-sujeto, composición, iluminación, estilo artístico, lente/cámara, paleta y nivel de detalle,
-manteniendo SIEMPRE la intención original. Mantén el contenido apto para todos los públicos (SFW).
-Devuelve SOLO el prompt mejorado, en una línea, sin comillas ni explicaciones.`;
+const SYSTEM = `You are an expert at writing prompts for AI image generators.
+Rewrite the user's idea as ONE rich, descriptive prompt written in ENGLISH — always English, no matter what language the user used.
+Include: subject, composition, lighting, art style, camera/lens, color palette and level of detail, always preserving the original intent.
+Keep it strictly SFW (safe for work). Output ONLY the improved English prompt — one line, no quotes, no preamble, no explanations.`;
 
 async function enhanceWithGroq(prompt: string): Promise<string> {
   const { text } = await generateText({
     model: groq("llama-3.3-70b-versatile"),
     system: SYSTEM,
-    prompt: `Idea del usuario: "${prompt}"`,
+    prompt: `User's idea: "${prompt}"`,
     temperature: 0.7,
     maxOutputTokens: 300,
   });
