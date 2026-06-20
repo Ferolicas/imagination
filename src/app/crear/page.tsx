@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 type SizeKey = "square" | "portrait" | "landscape";
@@ -44,6 +44,14 @@ export default function CrearPage() {
   const [imgReady, setImgReady] = useState(false);
   const [finalPrompt, setFinalPrompt] = useState("");
   const [error, setError] = useState("");
+  const [me, setMe] = useState<{ email: string; credits: number; verified: boolean } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/me")
+      .then((r) => r.json())
+      .then((d) => setMe(d.user))
+      .catch(() => {});
+  }, []);
 
   async function generate() {
     if (prompt.trim().length < 2) {
@@ -68,6 +76,9 @@ export default function CrearPage() {
       }
       setImage(data.images?.[0] ?? null);
       setFinalPrompt(data.finalPrompt ?? "");
+      if (typeof data.credits === "number") {
+        setMe((m) => (m ? { ...m, credits: data.credits } : m));
+      }
     } catch {
       setError("Error de red. Inténtalo de nuevo.");
     } finally {
@@ -85,12 +96,23 @@ export default function CrearPage() {
             Imagination
           </span>
         </Link>
-        <Link
-          href="/precios"
-          className="rounded-full border border-white/15 px-4 py-1.5 text-sm text-white/80 transition-colors hover:border-rose-400/60 hover:text-white"
-        >
-          Planes
-        </Link>
+        {me ? (
+          <span className="rounded-full border border-rose-400/40 bg-rose-500/10 px-3 py-1.5 text-sm font-semibold text-rose-200">
+            {me.credits} créditos
+          </span>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Link href="/entrar" className="rounded-full px-3 py-1.5 text-sm text-white/70 transition-colors hover:text-white">
+              Entrar
+            </Link>
+            <Link
+              href="/registro"
+              className="cursor-pointer rounded-full bg-gradient-to-br from-rose-500 to-fuchsia-600 px-4 py-1.5 text-sm font-semibold text-white transition-[filter] hover:brightness-110"
+            >
+              Crear cuenta
+            </Link>
+          </div>
+        )}
       </header>
 
       <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)]/70 p-4 shadow-2xl shadow-black/40 sm:p-6">
