@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 
 const key = process.env.RESEND_API_KEY;
-const from = process.env.EMAIL_FROM || "Imagination <no-reply@olcas.app>";
+const from = process.env.EMAIL_FROM || "Imagination <imagination@olcas.app>";
 const resend = key ? new Resend(key) : null;
 
 // Envía email. Si no hay clave Resend, no rompe: registra y devuelve false (degradación).
