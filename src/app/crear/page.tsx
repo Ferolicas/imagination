@@ -97,9 +97,12 @@ export default function CrearPage() {
           </span>
         </Link>
         {me ? (
-          <span className="rounded-full border border-rose-400/40 bg-rose-500/10 px-3 py-1.5 text-sm font-semibold text-rose-200">
+          <Link
+            href="/cuenta"
+            className="cursor-pointer rounded-full border border-rose-400/40 bg-rose-500/10 px-3 py-1.5 text-sm font-semibold text-rose-200 transition-colors hover:border-rose-400"
+          >
             {me.credits} créditos
-          </span>
+          </Link>
         ) : (
           <div className="flex items-center gap-2">
             <Link href="/entrar" className="rounded-full px-3 py-1.5 text-sm text-white/70 transition-colors hover:text-white">
