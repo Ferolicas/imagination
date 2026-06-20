@@ -13,6 +13,7 @@ git fetch origin main
 git reset --hard origin/main
 
 pnpm install --frozen-lockfile || pnpm install
+pnpm db:push
 pnpm build
 
 pm2 startOrReload ecosystem.config.cjs --update-env

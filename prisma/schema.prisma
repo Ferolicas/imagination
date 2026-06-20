@@ -1,0 +1,194 @@
+// Imagination — modelo de datos (PostgreSQL).
+// Incluye modelos compatibles con Auth.js (NextAuth) para enchufar el adaptador después.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Plan {
+  FREE
+  BASIC
+  PRO
+  PREMIUM
+}
+
+enum GenStatus {
+  QUEUED
+  RUNNING
+  DONE
+  ERROR
+  CACHED
+}
+
+enum TxType {
+  WELCOME
+  MONTHLY_GRANT
+  TOPUP
+  CONSUME
+  REFUND
+  ADMIN_ADJUST
+}
+
+enum Bucket {
+  MONTHLY
+  TOPUP
+}
+
+enum SubStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
+model User {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  emailVerified    DateTime?
+  passwordHash     String?
+  name             String?
+  image            String?
+  role             Role      @default(USER)
+  plan             Plan      @default(FREE)
+
+  // Créditos: bucket mensual (NO acumulable) + bucket de top-ups (persistente).
+  creditsMonthly   Int       @default(0)
+  creditsTopup     Int       @default(0)
+  monthlyResetAt   DateTime?
+  welcomeGranted   Boolean   @default(false)
+
+  signupIp         String?
+  stripeCustomerId String?   @unique
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  accounts         Account[]
+  sessions         Session[]
+  generations      Generation[]
+  transactions     CreditTx[]
+  subscription     Subscription?
+
+  @@index([plan])
+}
+
+// ── Auth.js (NextAuth) ──
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ── Negocio ──
+model Generation {
+  id             String    @id @default(cuid())
+  userId         String?
+  user           User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  promptOriginal String
+  promptFinal    String?
+  negative       String?
+  engine         String
+  model          String?
+  plan           Plan      @default(FREE)
+  quality        String    @default("standard")
+  width          Int       @default(1024)
+  height         Int       @default(1024)
+  count          Int       @default(1)
+  creditCost     Int       @default(0)
+  status         GenStatus @default(QUEUED)
+  error          String?
+  images         String[]
+  promptHash     String?
+  ip             String?
+  createdAt      DateTime  @default(now())
+  finishedAt     DateTime?
+
+  @@index([userId, createdAt])
+  @@index([promptHash])
+}
+
+model CreditTx {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount       Int // + concesión / - consumo
+  type         TxType
+  bucket       Bucket?
+  reason       String?
+  generationId String?
+  balanceAfter Int?
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model ImageCache {
+  id        String   @id @default(cuid())
+  key       String   @unique // hash(normalizado: prompt+engine+model+tamaño)
+  engine    String
+  model     String?
+  images    String[]
+  hits      Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripeSubscriptionId String    @unique
+  stripePriceId        String?
+  plan                 Plan
+  status               SubStatus
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
+
+// Idempotencia de webhooks de Stripe
+model WebhookEvent {
+  id        String   @id // stripe event id
+  type      String
+  createdAt DateTime @default(now())
+}
